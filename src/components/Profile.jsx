@@ -11,8 +11,8 @@ export default function Profile({ passcode, profileId, userData, onLogout }) {
   const [height, setHeight] = useState(userData?.height || (profileId === 'him' ? 70 : 64));
   const [targetWeight, setTargetWeight] = useState(userData?.targetWeight || (profileId === 'him' ? 165 : 120));
   const [weightUnit, setWeightUnit] = useState(userData?.weightUnit || 'lbs');
-  const [message, setMessage] = useState({ text: '', type: '' });
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   // Sync state if userData is loaded asynchronously or updated in Firestore
   useEffect(() => {
@@ -31,6 +31,7 @@ export default function Profile({ passcode, profileId, userData, onLogout }) {
     e.preventDefault();
     setMessage({ text: '', type: '' });
     setLoading(true);
+    setSuccess(false);
 
     try {
       const userRef = doc(db, 'couples', passcode, 'users', profileId);
@@ -45,7 +46,9 @@ export default function Profile({ passcode, profileId, userData, onLogout }) {
         weightUnit
       }, { merge: true });
       
+      setSuccess(true);
       setMessage({ text: 'Profile updated successfully!', type: 'success' });
+      setTimeout(() => setSuccess(false), 2000);
     } catch (err) {
       console.error(err);
       setMessage({ text: 'Failed to update profile.', type: 'error' });
@@ -238,9 +241,25 @@ export default function Profile({ passcode, profileId, userData, onLogout }) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 bg-brand-charcoal text-white rounded-2xl font-bold hover:bg-brand-charcoal/90 transition-all text-sm mt-2"
+            className={`w-full py-3.5 rounded-2xl font-bold transition-all text-sm mt-2 flex items-center justify-center gap-2 relative overflow-hidden active:scale-[0.98] ${
+              success
+                ? 'bg-brand-green text-white shadow-md shadow-brand-green/10'
+                : 'bg-brand-charcoal text-white hover:bg-brand-charcoal/90'
+            }`}
           >
-            Save Profile
+            {loading ? (
+              <>
+                <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />
+                <span>Saving Profile...</span>
+              </>
+            ) : success ? (
+              <>
+                <CheckCircle2 size={18} className="animate-bounce" />
+                <span>Profile Saved!</span>
+              </>
+            ) : (
+              <span>Save Profile</span>
+            )}
           </button>
         </form>
       </div>
