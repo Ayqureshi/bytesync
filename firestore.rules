@@ -1,0 +1,32 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Access is granted to anyone who knows the passcodeHash (which is the root document name).
+    // The passcode acts as the shared key, securing the path.
+    match /couples/{passcodeHash} {
+      allow read, write: if true;
+
+      match /users/{profileId} {
+        allow read, write: if true;
+      }
+
+      match /meals/{mealId} {
+        allow read, write: if true;
+      }
+
+      match /activities/{activityId} {
+        allow read, write: if true;
+      }
+
+      match /dailySummaries/{summaryId} {
+        allow read, write: if true;
+      }
+
+      match /weights/{weightId} {
+        allow read, write: if true;
+      }
+    }
+  }
+}

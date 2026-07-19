@@ -1,0 +1,36 @@
+{
+  "short_name": "BiteSync",
+  "name": "BiteSync - Partner Calorie Tracker",
+  "description": "Track daily calories and build streaks together with your partner.",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "type": "image/png",
+      "sizes": "32x32",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "type": "image/png",
+      "sizes": "180x180",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#fcfaf6",
+  "theme_color": "#2d3748",
+  "display": "standalone",
+  "orientation": "portrait"
+}
