@@ -9,7 +9,10 @@ export default function Progress({
   userData, 
   partnerData, 
   userWeights = [], 
-  partnerWeights = [] 
+  partnerWeights = [],
+  isNativeDevice = false,
+  healthAuthorized = false,
+  onRequestHealthAuth
 }) {
   const [newWeight, setNewWeight] = useState('');
   const [logDate, setLogDate] = useState(() => {
@@ -211,6 +214,74 @@ export default function Progress({
         <h2 className="text-2xl font-black text-brand-charcoal px-1">Progress Tracker</h2>
         <p className="text-xs text-brand-slate px-1 mt-1 font-medium">Track your weight goals, view trends, and plan calorie intakes.</p>
       </div>
+
+      {/* Apple Health integration for iOS native wrapper */}
+      {isNativeDevice && (
+        <div className="bg-white p-5 rounded-3xl border border-neutral-100 shadow-sm space-y-3 animate-fade-in">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-8 h-8 bg-brand-blue-light rounded-xl flex items-center justify-center text-brand-blue shadow-xs">
+              <span className="text-lg">❤️</span>
+            </div>
+            <h3 className="font-bold text-base text-brand-charcoal">Apple Health Integration</h3>
+          </div>
+          
+          <p className="text-xs text-brand-slate leading-relaxed font-medium">
+            Sync BiteSync with Apple Health to pull your daily steps and active calories automatically.
+          </p>
+
+          {healthAuthorized ? (
+            <div className="p-3 bg-brand-green-light/40 border border-brand-green/20 rounded-2xl flex items-center gap-3">
+              <span className="text-xl">✅</span>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-brand-green">Connected</p>
+                <p className="text-xs text-brand-slate mt-0.5">Steps & energy are syncing automatically.</p>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={onRequestHealthAuth}
+              className="w-full py-3.5 bg-brand-blue text-white rounded-2xl font-bold hover:bg-brand-blue/90 transition-all text-xs flex items-center justify-center gap-2"
+            >
+              <span>Connect Apple Health</span>
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Apple Health integration for iOS native wrapper */}
+      {isNativeDevice && (
+        <div className="bg-white p-5 rounded-3xl border border-neutral-100 shadow-sm space-y-3 animate-fade-in">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-8 h-8 bg-brand-blue-light rounded-xl flex items-center justify-center text-brand-blue shadow-xs">
+              <span className="text-lg">❤️</span>
+            </div>
+            <h3 className="font-bold text-base text-brand-charcoal">Apple Health Integration</h3>
+          </div>
+          
+          <p className="text-xs text-brand-slate leading-relaxed font-medium">
+            Sync BiteSync with Apple Health to pull your daily steps and active calories automatically.
+          </p>
+
+          {healthAuthorized ? (
+            <div className="p-3 bg-brand-green-light/40 border border-brand-green/20 rounded-2xl flex items-center gap-3">
+              <span className="text-xl">✅</span>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-brand-green">Connected</p>
+                <p className="text-xs text-brand-slate mt-0.5">Steps & energy are syncing automatically.</p>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={onRequestHealthAuth}
+              className="w-full py-3.5 bg-brand-blue text-white rounded-2xl font-bold hover:bg-brand-blue/90 transition-all text-xs flex items-center justify-center gap-2"
+            >
+              <span>Connect Apple Health</span>
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Side-by-side stats */}
       <div className="grid grid-cols-2 gap-4">

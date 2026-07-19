@@ -3,7 +3,7 @@ import { doc, setDoc, collection, getDocs, deleteDoc } from 'firebase/firestore'
 import { db } from '../firebase';
 import { User, Heart, CheckCircle2, AlertCircle, LogOut, Key, Trash2 } from 'lucide-react';
 
-export default function Profile({ passcode, profileId, userData, onLogout, isNativeDevice = false, healthAuthorized = false, onRequestHealthAuth }) {
+export default function Profile({ passcode, profileId, userData, onLogout }) {
   const [displayName, setDisplayName] = useState(userData?.displayName || (profileId === 'him' ? 'Ameen' : 'Noor'));
   const [calorieGoal, setCalorieGoal] = useState(userData?.dailyCalorieGoal || 2000);
   const [age, setAge] = useState(userData?.age || 25);
@@ -231,40 +231,6 @@ export default function Profile({ passcode, profileId, userData, onLogout, isNat
           </button>
         </form>
       </div>
-
-      {/* Apple Health integration for iOS native wrapper */}
-      {isNativeDevice && (
-        <div className="bg-white p-6 rounded-3xl border border-neutral-100 shadow-sm space-y-4 animate-fade-in">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 bg-brand-blue-light rounded-xl flex items-center justify-center text-brand-blue shadow-xs">
-              <span className="text-lg">❤️</span>
-            </div>
-            <h3 className="font-bold text-lg text-brand-charcoal">Apple Health</h3>
-          </div>
-          
-          <p className="text-xs text-brand-slate leading-relaxed font-medium">
-            Connect BiteSync with Apple Health to automatically fetch your daily step count and active calorie burn.
-          </p>
-
-          {healthAuthorized ? (
-            <div className="p-4 bg-brand-green-light/40 border border-brand-green/20 rounded-2xl flex items-center gap-3">
-              <span className="text-xl">✅</span>
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-brand-green">Connected</p>
-                <p className="text-xs text-brand-slate mt-0.5">Steps & energy are syncing automatically.</p>
-              </div>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={onRequestHealthAuth}
-              className="w-full py-3.5 bg-brand-blue text-white rounded-2xl font-bold hover:bg-brand-blue/90 transition-all text-sm flex items-center justify-center gap-2"
-            >
-              <span>Connect Apple Health</span>
-            </button>
-          )}
-        </div>
-      )}
 
       {/* Shared Space Info */}
       <div className="bg-white p-6 rounded-3xl border border-neutral-100 shadow-sm space-y-4">

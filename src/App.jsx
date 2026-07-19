@@ -507,14 +507,12 @@ export default function App() {
           )}
 
           {activeTab === 'profile' && (
-            <Profile 
+            <Profile
               passcode={passcode}
               profileId={profileId}
               userData={userData}
+              partnerData={partnerData}
               onLogout={handleLogout}
-              isNativeDevice={isNativeDevice}
-              healthAuthorized={healthAuthorized}
-              onRequestHealthAuth={handleRequestHealthAuth}
             />
           )}
 
@@ -526,6 +524,9 @@ export default function App() {
               partnerData={partnerData}
               userWeights={userWeights}
               partnerWeights={partnerWeights}
+              isNativeDevice={isNativeDevice}
+              healthAuthorized={healthAuthorized}
+              onRequestHealthAuth={handleRequestHealthAuth}
             />
           )}
         </main>
