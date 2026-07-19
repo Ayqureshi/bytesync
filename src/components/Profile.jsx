@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { doc, setDoc, collection, getDocs, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { User, Heart, CheckCircle2, AlertCircle, LogOut, Key, Trash2 } from 'lucide-react';
@@ -13,6 +13,19 @@ export default function Profile({ passcode, profileId, userData, onLogout }) {
   const [weightUnit, setWeightUnit] = useState(userData?.weightUnit || 'lbs');
   const [message, setMessage] = useState({ text: '', type: '' });
   const [loading, setLoading] = useState(false);
+
+  // Sync state if userData is loaded asynchronously or updated in Firestore
+  useEffect(() => {
+    if (userData) {
+      if (userData.displayName !== undefined) setDisplayName(userData.displayName);
+      if (userData.dailyCalorieGoal !== undefined) setCalorieGoal(userData.dailyCalorieGoal);
+      if (userData.age !== undefined) setAge(userData.age);
+      if (userData.weight !== undefined) setWeight(userData.weight);
+      if (userData.height !== undefined) setHeight(userData.height);
+      if (userData.targetWeight !== undefined) setTargetWeight(userData.targetWeight);
+      if (userData.weightUnit !== undefined) setWeightUnit(userData.weightUnit);
+    }
+  }, [userData]);
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();

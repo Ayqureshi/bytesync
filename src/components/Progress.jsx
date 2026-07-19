@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { collection, addDoc, deleteDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Scale, TrendingUp, PlusCircle, CheckCircle2, ChevronRight, Activity, Trash2 } from 'lucide-react';
@@ -35,6 +35,13 @@ export default function Progress({
   const [sliderTargetWeight, setSliderTargetWeight] = useState(targetWeightGoal);
   const [sliderPace, setSliderPace] = useState(-1.0); // lbs or kg per week (negative is loss)
   const [activityLevel, setActivityLevel] = useState(1.375); // default light activity BMR multiplier
+
+  // Sync slider target weight when userData is loaded from Firestore
+  useEffect(() => {
+    if (userData?.targetWeight !== undefined) {
+      setSliderTargetWeight(userData.targetWeight);
+    }
+  }, [userData?.targetWeight]);
 
   // Helper conversions
   const lbsToKg = (lbs) => lbs * 0.45359237;
