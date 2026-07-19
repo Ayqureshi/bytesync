@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Trash2, Heart, Send, Utensils, Activity, Award } from 'lucide-react';
+import { Trash2, Heart, Send, Utensils, Activity, Award, Pencil, Check, X } from 'lucide-react';
 
 export default function History({
   userMeals = [],
@@ -9,6 +9,7 @@ export default function History({
   userData,
   partnerData,
   onDeleteMeal,
+  onEditMeal,
   onDeleteActivity,
   onCommentMeal,
   onCommentActivity,
@@ -17,6 +18,34 @@ export default function History({
 }) {
   // Track comment input values independently for each feed item
   const [commentInputs, setCommentInputs] = useState({});
+
+  // Editing state
+  const [editingId, setEditingId] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [editCalories, setEditCalories] = useState('');
+  const [editType, setEditType] = useState('Breakfast');
+  const [editDate, setEditDate] = useState('');
+
+  const startEditing = (item) => {
+    setEditingId(item.id);
+    setEditName(item.name || '');
+    setEditCalories(item.calories || '');
+    setEditType(item.type || 'Breakfast');
+    setEditDate(item.date || '');
+  };
+
+  const handleSaveEdit = (itemId, originalDate) => {
+    if (onEditMeal) {
+      onEditMeal(itemId, {
+        name: editName,
+        calories: parseInt(editCalories, 10) || 0,
+        type: editType,
+        date: editDate,
+        originalDate
+      });
+    }
+    setEditingId(null);
+  };
 
   // Combine and de-duplicate feed items
   const combinedFeed = [
@@ -163,128 +192,212 @@ export default function History({
                 <div className="flex items-center justify-between mb-3.5 pb-2 border-b border-neutral-105">
                   <div className="flex items-center gap-2">
                     <span className={`text-[10px] px-2 py-0.5 rounded-md font-black uppercase tracking-wider ${
-                      isMe 
-                        ? 'bg-neutral-100 text-brand-charcoal'
-                        : isMeal
-                          ? 'bg-brand-green text-white'
-                          : 'bg-brand-blue text-white'
+                      editingId === item.id
+                        ? 'bg-amber-100 text-amber-700'
+                        : isMe 
+                          ? 'bg-neutral-100 text-brand-charcoal'
+                          : isMeal
+                            ? 'bg-brand-green text-white'
+                            : 'bg-brand-blue text-white'
                     }`}>
-                      {item.ownerName}
+                      {editingId === item.id ? 'Editing Food Log' : item.ownerName}
                     </span>
-                    <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">
-                      {isMeal ? 'logged food' : 'logged workout'}
-                    </span>
+                    {editingId !== item.id && (
+                      <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">
+                        {isMeal ? 'logged food' : 'logged workout'}
+                      </span>
+                    )}
                   </div>
                   <span className="text-[10px] font-bold text-brand-slate">
                     {itemDateFormatted}
                   </span>
                 </div>
 
-                {/* Content row */}
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 font-bold ${
-                      isMeal 
-                        ? 'bg-brand-green-light text-brand-green' 
-                        : 'bg-brand-blue-light text-brand-blue'
-                    }`}>
-                      {isMeal ? <Utensils size={18} /> : <Activity size={18} />}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="font-bold text-sm text-brand-charcoal">
-                          {isMeal ? item.name : item.description}
-                        </span>
+                {editingId === item.id ? (
+                  /* Inline Editing Form */
+                  <div className="space-y-4 animate-fade-in">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] uppercase font-black tracking-wider text-neutral-400 mb-1">Food Name</label>
+                        <input 
+                          type="text" 
+                          value={editName} 
+                          onChange={(e) => setEditName(e.target.value)} 
+                          className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-xs font-semibold placeholder-neutral-400 focus:outline-none focus:border-brand-green focus:bg-white transition-all"
+                          placeholder="e.g. Avocado Toast"
+                        />
                       </div>
-                      <span className="text-xs text-brand-slate font-medium">
-                        {isMeal 
-                          ? `${item.type} • ${item.calories} kcal` 
-                          : 'Physical Activity / Exercise'}
-                      </span>
+                      <div>
+                        <label className="block text-[10px] uppercase font-black tracking-wider text-neutral-400 mb-1">Calories (kcal)</label>
+                        <input 
+                          type="number" 
+                          value={editCalories} 
+                          onChange={(e) => setEditCalories(e.target.value)} 
+                          className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-xs font-semibold placeholder-neutral-400 focus:outline-none focus:border-brand-green focus:bg-white transition-all"
+                          placeholder="e.g. 350"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] uppercase font-black tracking-wider text-neutral-400 mb-1">Meal Type</label>
+                        <select 
+                          value={editType} 
+                          onChange={(e) => setEditType(e.target.value)} 
+                          className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-brand-green focus:bg-white transition-all"
+                        >
+                          <option>Breakfast</option>
+                          <option>Lunch</option>
+                          <option>Dinner</option>
+                          <option>Snack</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] uppercase font-black tracking-wider text-neutral-400 mb-1">Date</label>
+                        <input 
+                          type="date" 
+                          value={editDate} 
+                          onChange={(e) => setEditDate(e.target.value)} 
+                          className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-brand-green focus:bg-white transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-2">
+                      <button
+                        onClick={() => setEditingId(null)}
+                        className="flex items-center gap-1.5 px-3 py-2 bg-neutral-100 hover:bg-neutral-200 text-brand-slate rounded-xl text-xs font-bold transition-all active:scale-95"
+                      >
+                        <X size={14} />
+                        <span>Cancel</span>
+                      </button>
+                      <button
+                        onClick={() => handleSaveEdit(item.id, item.date)}
+                        disabled={!editName.trim() || !editCalories || parseInt(editCalories, 10) <= 0}
+                        className="flex items-center gap-1.5 px-3 py-2 bg-brand-green text-white hover:bg-brand-green/90 rounded-xl text-xs font-bold transition-all active:scale-95 disabled:opacity-50"
+                      >
+                        <Check size={14} />
+                        <span>Save</span>
+                      </button>
                     </div>
                   </div>
-
-                  {isMe ? (
-                    <button
-                      onClick={() => isMeal ? onDeleteMeal(item.id, item.date) : onDeleteActivity(item.id)}
-                      className="p-2 text-neutral-400 hover:text-brand-rose hover:bg-brand-rose-light/50 rounded-xl transition-all active:scale-95"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  ) : null}
-                </div>
-
-                {/* Kudos Cheer Bar */}
-                <div className="mt-4 pt-3.5 border-t border-neutral-100 flex flex-wrap items-center justify-between gap-2">
-                  <button
-                    onClick={() => onToggleKudos(isMeal ? 'meals' : 'activities', item.id, hasMyKudos)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 ${
-                      hasMyKudos
-                        ? 'bg-amber-100 text-amber-600 shadow-3xs'
-                        : 'bg-neutral-50 hover:bg-neutral-100 text-brand-slate'
-                    }`}
-                  >
-                    <Heart size={14} className={hasMyKudos ? "fill-current animate-pulse text-amber-500" : ""} />
-                    <span>{hasMyKudos ? "Kudos sent! ✨" : "Give Kudos"}</span>
-                  </button>
-
-                  <div className="text-[10px] text-brand-slate font-bold flex items-center gap-1">
-                    {kudosList.length > 0 && (
-                      <span className="flex items-center gap-1 bg-amber-50 text-amber-600 py-0.5 px-2 rounded-md border border-amber-100/40">
-                        <Award size={10} className="fill-current text-amber-500" />
-                        {hasMyKudos && hasPartnerKudos 
-                          ? "You both cheered! ❤️" 
-                          : hasMyKudos 
-                            ? "You cheered! 💖" 
-                            : `${partnerDisplayName} cheered! 🎉`}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Comments Section */}
-                <div className="mt-3.5 pt-3.5 border-t border-neutral-100 space-y-3">
-                  {/* List existing comments */}
-                  {item.comments && item.comments.length > 0 && (
-                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                      {item.comments.map((comment) => {
-                        const commentIsMe = comment.senderProfileId === currentProfileId;
-                        return (
-                          <div key={comment.id} className="flex flex-col text-xs">
-                            <span className={`text-[9px] font-bold text-brand-slate mb-0.5 ${commentIsMe ? 'text-right' : 'text-left'}`}>
-                              {comment.senderName}
+                ) : (
+                  <>
+                    {/* Content row */}
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 font-bold ${
+                          isMeal 
+                            ? 'bg-brand-green-light text-brand-green' 
+                            : 'bg-brand-blue-light text-brand-blue'
+                        }`}>
+                          {isMeal ? <Utensils size={18} /> : <Activity size={18} />}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-bold text-sm text-brand-charcoal">
+                              {isMeal ? item.name : item.description}
                             </span>
-                            <div className={`p-2.5 rounded-2xl font-medium leading-relaxed max-w-[85%] break-words ${
-                              commentIsMe 
-                                ? 'bg-neutral-100 text-brand-charcoal rounded-tr-none ml-auto' 
-                                : 'bg-white text-brand-charcoal rounded-tl-none border border-neutral-100 shadow-3xs'
-                            }`}>
-                              {comment.text}
-                            </div>
                           </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                          <span className="text-xs text-brand-slate font-medium">
+                            {isMeal 
+                              ? `${item.type} • ${item.calories} kcal` 
+                              : 'Physical Activity / Exercise'}
+                          </span>
+                        </div>
+                      </div>
 
-                  {/* Add comment form */}
-                  <form onSubmit={(e) => handleSendComment(e, item)} className="flex items-center gap-2 mt-2">
-                    <input
-                      type="text"
-                      value={commentInputs[item.id] || ''}
-                      onChange={(e) => setCommentInputs(prev => ({ ...prev, [item.id]: e.target.value }))}
-                      placeholder={!isMe ? `Send a sweet note to ${item.ownerName}...` : "Write a note..."}
-                      className="flex-1 px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-2xl text-xs font-semibold placeholder-neutral-400 focus:outline-none focus:border-brand-green focus:bg-white transition-all"
-                    />
-                    <button
-                      type="submit"
-                      disabled={!(commentInputs[item.id] || '').trim()}
-                      className="p-2.5 bg-brand-charcoal text-white rounded-xl hover:bg-brand-charcoal/90 disabled:opacity-40 disabled:hover:bg-brand-charcoal transition-all active:scale-95 shrink-0"
-                    >
-                      <Send size={12} />
-                    </button>
-                  </form>
-                </div>
+                      {isMe ? (
+                        <div className="flex items-center gap-1.5">
+                          {isMeal && (
+                            <button
+                              onClick={() => startEditing(item)}
+                              className="p-2 text-neutral-400 hover:text-brand-green hover:bg-brand-green-light/50 rounded-xl transition-all active:scale-95"
+                            >
+                              <Pencil size={16} />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => isMeal ? onDeleteMeal(item.id, item.date) : onDeleteActivity(item.id)}
+                            className="p-2 text-neutral-400 hover:text-brand-rose hover:bg-brand-rose-light/50 rounded-xl transition-all active:scale-95"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
+
+                    {/* Kudos Cheer Bar */}
+                    <div className="mt-4 pt-3.5 border-t border-neutral-100 flex flex-wrap items-center justify-between gap-2">
+                      <button
+                        onClick={() => onToggleKudos(isMeal ? 'meals' : 'activities', item.id, hasMyKudos)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 ${
+                          hasMyKudos
+                            ? 'bg-amber-100 text-amber-600 shadow-3xs'
+                            : 'bg-neutral-50 hover:bg-neutral-100 text-brand-slate'
+                        }`}
+                      >
+                        <Heart size={14} className={hasMyKudos ? "fill-current animate-pulse text-amber-500" : ""} />
+                        <span>{hasMyKudos ? "Kudos sent! ✨" : "Give Kudos"}</span>
+                      </button>
+
+                      <div className="text-[10px] text-brand-slate font-bold flex items-center gap-1">
+                        {kudosList.length > 0 && (
+                          <span className="flex items-center gap-1 bg-amber-50 text-amber-600 py-0.5 px-2 rounded-md border border-amber-100/40">
+                            <Award size={10} className="fill-current text-amber-500" />
+                            {hasMyKudos && hasPartnerKudos 
+                              ? "You both cheered! ❤️" 
+                              : hasMyKudos 
+                                ? "You cheered! 💖" 
+                                : `${partnerDisplayName} cheered! 🎉`}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Comments Section */}
+                    <div className="mt-3.5 pt-3.5 border-t border-neutral-100 space-y-3">
+                      {/* List existing comments */}
+                      {item.comments && item.comments.length > 0 && (
+                        <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                          {item.comments.map((comment) => {
+                            const commentIsMe = comment.senderProfileId === currentProfileId;
+                            return (
+                              <div key={comment.id} className="flex flex-col text-xs">
+                                <span className={`text-[9px] font-bold text-brand-slate mb-0.5 ${commentIsMe ? 'text-right' : 'text-left'}`}>
+                                  {comment.senderName}
+                                </span>
+                                <div className={`p-2.5 rounded-2xl font-medium leading-relaxed max-w-[85%] break-words ${
+                                  commentIsMe 
+                                    ? 'bg-neutral-100 text-brand-charcoal rounded-tr-none ml-auto' 
+                                    : 'bg-white text-brand-charcoal rounded-tl-none border border-neutral-100 shadow-3xs'
+                                }`}>
+                                  {comment.text}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Add comment form */}
+                      <form onSubmit={(e) => handleSendComment(e, item)} className="flex items-center gap-2 mt-2">
+                        <input
+                          type="text"
+                          value={commentInputs[item.id] || ''}
+                          onChange={(e) => setCommentInputs(prev => ({ ...prev, [item.id]: e.target.value }))}
+                          placeholder={!isMe ? `Send a sweet note to ${item.ownerName}...` : "Write a note..."}
+                          className="flex-1 px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-2xl text-xs font-semibold placeholder-neutral-400 focus:outline-none focus:border-brand-green focus:bg-white transition-all"
+                        />
+                        <button
+                          type="submit"
+                          disabled={!(commentInputs[item.id] || '').trim()}
+                          className="p-2.5 bg-brand-charcoal text-white rounded-xl hover:bg-brand-charcoal/90 disabled:opacity-40 disabled:hover:bg-brand-charcoal transition-all active:scale-95 shrink-0"
+                        >
+                          <Send size={12} />
+                        </button>
+                      </form>
+                    </div>
+                  </>
+                )}
 
               </div>
             );

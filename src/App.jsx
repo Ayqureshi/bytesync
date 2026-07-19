@@ -79,30 +79,29 @@ export default function App() {
     const userProfileRef = doc(db, 'couples', passcode, 'users', profileId);
     const partnerProfileRef = doc(db, 'couples', passcode, 'users', partnerProfileId);
 
-    // Write default profile data if not present (merge: true)
-    setDoc(userProfileRef, {
-      uid: profileId,
-      displayName: profileId === 'him' ? 'Ameen' : 'Noor',
-      dailyCalorieGoal: 2000
-    }, { merge: true }).catch(err => console.error(err));
-
-    setDoc(partnerProfileRef, {
-      uid: partnerProfileId,
-      displayName: partnerProfileId === 'him' ? 'Ameen' : 'Noor',
-      dailyCalorieGoal: 2000
-    }, { merge: true }).catch(err => console.error(err));
-
-    // 2. User Profile Listener
+    // 2. User Profile Listener (write default profile data only if not present)
     const unsubProfile = onSnapshot(userProfileRef, (docSnap) => {
       if (docSnap.exists()) {
         setUserData(docSnap.data());
+      } else {
+        setDoc(userProfileRef, {
+          uid: profileId,
+          displayName: profileId === 'him' ? 'Ameen' : 'Noor',
+          dailyCalorieGoal: 2000
+        }).catch(err => console.error(err));
       }
     });
 
-    // 3. Partner Profile Listener
+    // 3. Partner Profile Listener (write default profile data only if not present)
     const unsubPartnerProfile = onSnapshot(partnerProfileRef, (docSnap) => {
       if (docSnap.exists()) {
         setPartnerData(docSnap.data());
+      } else {
+        setDoc(partnerProfileRef, {
+          uid: partnerProfileId,
+          displayName: partnerProfileId === 'him' ? 'Ameen' : 'Noor',
+          dailyCalorieGoal: 2000
+        }).catch(err => console.error(err));
       }
     });
 
@@ -210,6 +209,28 @@ export default function App() {
       await syncDailySummary(passcode, profileId, dateStr, userData?.dailyCalorieGoal || 2000);
     } catch (error) {
       console.error("Error deleting meal:", error);
+    }
+  };
+
+  const handleEditMeal = async (mealId, updatedData) => {
+    if (!passcode) return;
+    try {
+      const mealRef = doc(db, 'couples', passcode, 'meals', mealId);
+      await updateDoc(mealRef, {
+        name: updatedData.name.trim(),
+        calories: parseInt(updatedData.calories, 10),
+        type: updatedData.type,
+        date: updatedData.date
+      });
+      // Recalculate daily summary for the updated date
+      await syncDailySummary(passcode, profileId, updatedData.date, userData?.dailyCalorieGoal || 2000);
+      
+      // If the date was changed, also recalculate for the original date so its summary is updated
+      if (updatedData.originalDate && updatedData.originalDate !== updatedData.date) {
+        await syncDailySummary(passcode, profileId, updatedData.originalDate, userData?.dailyCalorieGoal || 2000);
+      }
+    } catch (error) {
+      console.error("Error editing meal:", error);
     }
   };
 
@@ -413,6 +434,7 @@ export default function App() {
               userData={userData}
               partnerData={partnerData}
               onDeleteMeal={handleDeleteMeal}
+              onEditMeal={handleEditMeal}
               onDeleteActivity={handleDeleteActivity}
               onCommentMeal={handleCommentMeal}
               onCommentActivity={handleCommentActivity}
