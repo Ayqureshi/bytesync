@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { doc, onSnapshot, collection, query, where, deleteDoc, setDoc, arrayUnion, arrayRemove, updateDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import { syncDailySummary } from './utils';
+import { Capacitor } from '@capacitor/core';
+import { isHealthAvailable, requestHealthPermissions, getTodayStepsAndCalories } from './utils/health';
 
 // Import Components
 import LockScreen from './components/LockScreen';
@@ -70,6 +72,67 @@ export default function App() {
     setPartnerSummaries({});
     setActiveTab('dashboard');
   };
+
+  const [isNativeDevice, setIsNativeDevice] = useState(false);
+  const [healthAuthorized, setHealthAuthorized] = useState(localStorage.getItem('bitesync_health_auth') === 'true');
+
+  const syncAppleHealthData = async (steps, calories) => {
+    if (!passcode || !profileId) return;
+    const todayStr = getTodayDateString();
+    const summaryRef = doc(db, 'couples', passcode, 'dailySummaries', `${profileId}_${todayStr}`);
+    try {
+      await setDoc(summaryRef, {
+        steps: steps,
+        activeCaloriesBurned: calories
+      }, { merge: true });
+    } catch (e) {
+      console.error("Error syncing Apple Health data to Firestore:", e);
+    }
+  };
+
+  const syncHealth = async () => {
+    const data = await getTodayStepsAndCalories();
+    if (data.steps > 0 || data.calories > 0) {
+      await syncAppleHealthData(data.steps, data.calories);
+    }
+  };
+
+  const handleRequestHealthAuth = async () => {
+    const success = await requestHealthPermissions();
+    if (success) {
+      setHealthAuthorized(true);
+      localStorage.setItem('bitesync_health_auth', 'true');
+      await syncHealth();
+    } else {
+      alert("Failed to authorize Apple Health. Please enable permissions in your iPhone Settings > Health > Data Access.");
+    }
+  };
+
+  // Native/Health check
+  useEffect(() => {
+    const checkNative = async () => {
+      const native = Capacitor.isNativePlatform();
+      setIsNativeDevice(native);
+      if (native) {
+        const available = await isHealthAvailable();
+        if (available && healthAuthorized) {
+          await syncHealth();
+        }
+      }
+    };
+    checkNative().catch(err => console.error(err));
+  }, [healthAuthorized, passcode, profileId]);
+
+  // App focus sync
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isNativeDevice && healthAuthorized) {
+        syncHealth().catch(err => console.error(err));
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isNativeDevice, healthAuthorized, passcode, profileId]);
 
   // Database Observers
   useEffect(() => {
@@ -449,6 +512,9 @@ export default function App() {
               profileId={profileId}
               userData={userData}
               onLogout={handleLogout}
+              isNativeDevice={isNativeDevice}
+              healthAuthorized={healthAuthorized}
+              onRequestHealthAuth={handleRequestHealthAuth}
             />
           )}
 

@@ -2,14 +2,15 @@ import { Flame, Activity, Sparkles } from 'lucide-react';
 import { calculateStreak } from '../utils';
 
 // Reusable Circular Progress Meter
-function CalorieMeter({ consumed, goal, label, color, bgImage }) {
+function CalorieMeter({ consumed, goal, label, color, bgImage, steps = 0, activeBurn = 0 }) {
   const pct = Math.min(100, goal > 0 ? (consumed / goal) * 100 : 0);
   const radius = 46;
   const strokeWidth = 8;
   const circ = 2 * Math.PI * radius;
   const strokeDashoffset = circ - (pct / 100) * circ;
-  const remaining = goal - consumed;
-  const isOver = remaining < 0;
+  const netCalories = consumed - activeBurn;
+  const remaining = goal - netCalories;
+  const isOver = netCalories > goal;
 
   return (
     <div
@@ -53,6 +54,28 @@ function CalorieMeter({ consumed, goal, label, color, bgImage }) {
         </div>
       </div>
 
+      {/* Energy Balance Stats */}
+      {(steps > 0 || activeBurn > 0) && (
+        <div className="mt-3.5 w-full border-t border-neutral-100/60 pt-2.5 space-y-1">
+          {steps > 0 && (
+            <div className="flex items-center justify-between text-[10px] font-bold text-brand-slate">
+              <span>👣 Steps</span>
+              <span className="text-brand-charcoal">{steps.toLocaleString()}</span>
+            </div>
+          )}
+          {activeBurn > 0 && (
+            <div className="flex items-center justify-between text-[10px] font-bold text-brand-slate">
+              <span>🔥 Burn</span>
+              <span className="text-brand-charcoal">-{activeBurn} kcal</span>
+            </div>
+          )}
+          <div className="flex items-center justify-between text-[10px] font-black text-brand-slate border-t border-dashed border-neutral-100 pt-1 mt-1">
+            <span>Net</span>
+            <span className="text-brand-charcoal">{netCalories} kcal</span>
+          </div>
+        </div>
+      )}
+
       <div className="mt-4 w-full">
         {isOver ? (
           <div className="py-1 px-2.5 bg-brand-rose-light text-brand-rose rounded-xl text-center text-[10px] font-bold border border-brand-rose/10">
@@ -78,7 +101,9 @@ export default function Dashboard({
   userTodayMeals = [],
   partnerTodayMeals = [],
   userTodayActivities = [],
-  partnerTodayActivities = []
+  partnerTodayActivities = [],
+  userSummaries = {},
+  partnerSummaries = {}
 }) {
   // Sum today's calories
   const userTodayCalories = userTodayMeals.reduce((sum, m) => sum + m.calories, 0);
@@ -123,6 +148,24 @@ export default function Dashboard({
       streakMessage = "Neither of you has logged anything in the last 24 hours. Start logging to begin your streak! 🔥";
     }
   }
+
+  const getTodayDateString = () => {
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+  const todayStr = getTodayDateString();
+
+  const userTodaySummary = userSummaries?.[todayStr] || {};
+  const partnerTodaySummary = partnerSummaries?.[todayStr] || {};
+
+  const userSteps = userTodaySummary.steps || 0;
+  const userActiveEnergy = userTodaySummary.activeCaloriesBurned || 0;
+
+  const partnerSteps = partnerTodaySummary.steps || 0;
+  const partnerActiveEnergy = partnerTodaySummary.activeCaloriesBurned || 0;
 
   return (
     <div className="space-y-6">
@@ -207,7 +250,6 @@ export default function Dashboard({
               <img src={userPhoto} alt="" className="w-full h-full object-cover" />
             </div>
           </div>
-          
           <div className="relative z-10">
             <CalorieMeter
               consumed={userTodayCalories}
@@ -217,6 +259,8 @@ export default function Dashboard({
               lightBg="var(--color-brand-green-light)"
               textColor="var(--color-brand-green)"
               bgImage={userPhoto}
+              steps={userSteps}
+              activeBurn={userActiveEnergy}
             />
           </div>
         </div>
@@ -268,7 +312,6 @@ export default function Dashboard({
               <img src={partnerPhoto} alt="" className="w-full h-full object-cover" />
             </div>
           </div>
-          
           <div className="relative z-10">
             <CalorieMeter
               consumed={partnerTodayCalories}
@@ -278,6 +321,8 @@ export default function Dashboard({
               lightBg="var(--color-brand-green-light)"
               textColor="var(--color-brand-green)"
               bgImage={partnerPhoto}
+              steps={partnerSteps}
+              activeBurn={partnerActiveEnergy}
             />
           </div>
         </div>

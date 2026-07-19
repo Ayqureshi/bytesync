@@ -24,7 +24,7 @@ export async function syncDailySummary(passcode, profileId, dateStr, dailyCalori
       caloriesConsumed: totalCalories,
       goal: parseInt(dailyCalorieGoal, 10) || 2000,
       metGoal: totalCalories <= (parseInt(dailyCalorieGoal, 10) || 2000)
-    });
+    }, { merge: true });
 
     return totalCalories;
   } catch (error) {
