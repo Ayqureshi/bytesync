@@ -11,6 +11,7 @@ export default function Profile({ passcode, profileId, userData, onLogout }) {
   const [height, setHeight] = useState(userData?.height || (profileId === 'him' ? 70 : 64));
   const [targetWeight, setTargetWeight] = useState(userData?.targetWeight || (profileId === 'him' ? 165 : 120));
   const [weightUnit, setWeightUnit] = useState(userData?.weightUnit || 'lbs');
+  const [message, setMessage] = useState({ text: '', type: '' });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
