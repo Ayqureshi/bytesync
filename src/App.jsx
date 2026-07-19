@@ -382,7 +382,7 @@ export default function App() {
         </header>
 
         {/* Main Scrollable Area */}
-        <main className="w-full max-w-lg px-4 pt-6 space-y-6 flex-1 pointer-events-auto">
+        <main className="w-full max-w-lg px-4 pt-6 pb-28 space-y-6 flex-1 pointer-events-auto">
           {activeTab === 'dashboard' && (
             <>
               <Dashboard
@@ -465,7 +465,7 @@ export default function App() {
         </main>
 
         {/* Mobile Sticky Bottom Tab Bar */}
-        <nav className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-neutral-100 py-3 px-6 flex items-center justify-around z-50 md:max-w-lg md:mx-auto md:bottom-4 md:rounded-3xl md:border md:shadow-lg pointer-events-auto">
+        <nav className="fixed bottom-6 left-4 right-4 bg-white/90 backdrop-blur-md border border-neutral-150/70 py-3 px-6 flex items-center justify-around z-50 max-w-lg mx-auto rounded-3xl shadow-xl pointer-events-auto">
           {/* Dashboard Tab */}
           <button
             onClick={() => setActiveTab('dashboard')}
