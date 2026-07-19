@@ -14,10 +14,11 @@ export default function Profile({ passcode, profileId, userData, onLogout }) {
   const [message, setMessage] = useState({ text: '', type: '' });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [hasInitialized, setHasInitialized] = useState(false);
 
-  // Sync state if userData is loaded asynchronously or updated in Firestore
+  // Sync state if userData is loaded asynchronously or updated in Firestore (run once per mount)
   useEffect(() => {
-    if (userData) {
+    if (userData && !hasInitialized) {
       if (userData.displayName !== undefined) setDisplayName(userData.displayName);
       if (userData.dailyCalorieGoal !== undefined) setCalorieGoal(userData.dailyCalorieGoal);
       if (userData.age !== undefined) setAge(userData.age);
@@ -25,8 +26,9 @@ export default function Profile({ passcode, profileId, userData, onLogout }) {
       if (userData.height !== undefined) setHeight(userData.height);
       if (userData.targetWeight !== undefined) setTargetWeight(userData.targetWeight);
       if (userData.weightUnit !== undefined) setWeightUnit(userData.weightUnit);
+      setHasInitialized(true);
     }
-  }, [userData]);
+  }, [userData, hasInitialized]);
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();

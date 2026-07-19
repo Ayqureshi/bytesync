@@ -35,13 +35,15 @@ export default function Progress({
   const [sliderTargetWeight, setSliderTargetWeight] = useState(targetWeightGoal);
   const [sliderPace, setSliderPace] = useState(-1.0); // lbs or kg per week (negative is loss)
   const [activityLevel, setActivityLevel] = useState(1.375); // default light activity BMR multiplier
+  const [hasInitialized, setHasInitialized] = useState(false);
 
-  // Sync slider target weight when userData is loaded from Firestore
+  // Sync slider target weight when userData is loaded from Firestore (run once per mount)
   useEffect(() => {
-    if (userData?.targetWeight !== undefined) {
+    if (userData?.targetWeight !== undefined && !hasInitialized) {
       setSliderTargetWeight(userData.targetWeight);
+      setHasInitialized(true);
     }
-  }, [userData?.targetWeight]);
+  }, [userData?.targetWeight, hasInitialized]);
 
   // Helper conversions
   const lbsToKg = (lbs) => lbs * 0.45359237;
