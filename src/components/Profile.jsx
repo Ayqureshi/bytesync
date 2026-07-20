@@ -38,7 +38,7 @@ export default function Profile({ passcode, profileId, userData, onLogout }) {
 
     try {
       const userRef = doc(db, 'couples', passcode, 'users', profileId);
-      await setDoc(userRef, {
+      const updateData = {
         uid: profileId,
         displayName,
         dailyCalorieGoal: parseInt(calorieGoal, 10) || 2000,
@@ -47,7 +47,13 @@ export default function Profile({ passcode, profileId, userData, onLogout }) {
         height: parseFloat(height) || 0,
         targetWeight: parseFloat(targetWeight) || 0,
         weightUnit
-      }, { merge: true });
+      };
+
+      // Execute write with 1s UI timeout to prevent network buffering stalls
+      const writePromise = setDoc(userRef, updateData, { merge: true });
+      const timeoutPromise = new Promise(resolve => setTimeout(resolve, 1000));
+
+      await Promise.race([writePromise, timeoutPromise]);
       
       setSuccess(true);
       setMessage({ text: 'Profile updated successfully!', type: 'success' });

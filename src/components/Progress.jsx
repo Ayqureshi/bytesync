@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, addDoc, deleteDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, deleteDoc, doc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Scale, TrendingUp, PlusCircle, CheckCircle2, ChevronRight, Activity, Trash2 } from 'lucide-react';
 
@@ -12,7 +12,8 @@ export default function Progress({
   partnerWeights = [],
   isNativeDevice = false,
   healthAuthorized = false,
-  onRequestHealthAuth
+  onRequestHealthAuth,
+  userSummaries = {}
 }) {
   const [newWeight, setNewWeight] = useState('');
   const [logDate, setLogDate] = useState(() => {
@@ -35,6 +36,7 @@ export default function Progress({
   const [sliderTargetWeight, setSliderTargetWeight] = useState(targetWeightGoal);
   const [sliderPace, setSliderPace] = useState(-1.0); // lbs or kg per week (negative is loss)
   const [activityLevel, setActivityLevel] = useState(1.375); // default light activity BMR multiplier
+  const [movementBasis, setMovementBasis] = useState('7day');
   const [hasInitialized, setHasInitialized] = useState(false);
 
   // Sync slider target weight when userData is loaded from Firestore (run once per mount)
@@ -49,7 +51,38 @@ export default function Progress({
   const lbsToKg = (lbs) => lbs * 0.45359237;
   const inToCm = (inches) => inches * 2.54;
 
-  // Mifflin-St Jeor Calorie Math
+  // Calculate average active calories burned over the last 7 days from userSummaries
+  const calculate7DayActiveBurn = () => {
+    const dates = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      dates.push(`${yyyy}-${mm}-${dd}`);
+    }
+
+    let totalActiveBurn = 0;
+    let daysWithData = 0;
+
+    dates.forEach(dStr => {
+      const summary = userSummaries[dStr];
+      if (summary && summary.activeCaloriesBurned > 0) {
+        totalActiveBurn += summary.activeCaloriesBurned;
+        daysWithData++;
+      }
+    });
+
+    const todayStr = dates[0];
+    const todayActive = userSummaries[todayStr]?.activeCaloriesBurned || 0;
+    const avgActiveBurn = daysWithData > 0 ? Math.round(totalActiveBurn / daysWithData) : 0;
+    return { avgActiveBurn, todayActive, daysWithData };
+  };
+
+  const healthData = calculate7DayActiveBurn();
+
+  // Mifflin-St Jeor Calorie Math with Movement Trends
   const calculateSuggestedCalories = () => {
     const age = userData?.age || 25;
     const currentWeight = userData?.weight || initialWeight;
@@ -71,8 +104,17 @@ export default function Progress({
       bmr = 10 * weightKg + 6.25 * heightCm - 5 * age - 161;
     }
 
-    // TDEE estimation
-    const tdee = bmr * parseFloat(activityLevel);
+    // Dynamic TDEE estimation based on chosen movement basis
+    let tdee = 0;
+    if (movementBasis === '7day') {
+      const activeBurn = healthData.avgActiveBurn > 0 ? healthData.avgActiveBurn : Math.round(bmr * 0.375);
+      tdee = bmr + activeBurn;
+    } else if (movementBasis === 'today') {
+      const activeBurn = healthData.todayActive > 0 ? healthData.todayActive : Math.round(bmr * 0.375);
+      tdee = bmr + activeBurn;
+    } else {
+      tdee = bmr * parseFloat(activityLevel);
+    }
 
     // Pace deficit/surplus (1 lb = ~3500 kcal, so 1 kg = ~7700 kcal)
     const factor = weightUnit === 'lbs' ? 500 : 1100;
@@ -87,6 +129,7 @@ export default function Progress({
     }
 
     return {
+      bmr: Math.round(bmr),
       tdee: Math.round(tdee),
       suggestedDaily,
       suggestedWeekly: suggestedDaily * 7
@@ -140,11 +183,14 @@ export default function Progress({
     setCalculatorMessage('');
     try {
       const userRef = doc(db, 'couples', passcode, 'users', profileId);
-      await updateDoc(userRef, {
+      const writePromise = setDoc(userRef, {
         dailyCalorieGoal: calcs.suggestedDaily,
         targetWeight: parseFloat(sliderTargetWeight)
-      });
-      setCalculatorMessage('Calorie goal successfully applied!');
+      }, { merge: true });
+      const timeoutPromise = new Promise(resolve => setTimeout(resolve, 1000));
+      await Promise.race([writePromise, timeoutPromise]);
+
+      setCalculatorMessage('Calorie goal successfully applied to profile!');
       setTimeout(() => setCalculatorMessage(''), 3000);
     } catch (err) {
       console.error("Error updating goal:", err);
@@ -434,21 +480,75 @@ export default function Progress({
             />
           </div>
 
-          {/* Activity multiplier selector */}
+          {/* Movement Source Selector */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-brand-slate mb-2">
-              Activity Level
+              Movement Basis
             </label>
-            <select
-              value={activityLevel}
-              onChange={(e) => setActivityLevel(parseFloat(e.target.value))}
-              className="w-full px-4 py-3 bg-neutral-50 rounded-2xl border border-neutral-200 text-brand-charcoal font-bold focus:outline-none focus:border-brand-rose focus:bg-white transition-all text-sm appearance-none cursor-pointer"
-            >
-              <option value="1.2">Sedentary (Little to no exercise)</option>
-              <option value="1.375">Lightly Active (1-3 days/wk light workouts)</option>
-              <option value="1.55">Moderately Active (3-5 days/wk moderate exercises)</option>
-              <option value="1.725">Very Active (6-7 days/wk hard workouts)</option>
-            </select>
+            <div className="grid grid-cols-3 gap-2 p-1 bg-neutral-100/70 rounded-2xl border border-neutral-200/50">
+              <button
+                type="button"
+                onClick={() => setMovementBasis('7day')}
+                className={`py-2 px-1 text-center rounded-xl font-bold text-[11px] transition-all ${
+                  movementBasis === '7day'
+                    ? 'bg-white text-brand-charcoal shadow-2xs'
+                    : 'text-brand-slate hover:text-brand-charcoal'
+                }`}
+              >
+                📊 7-Day Trend
+              </button>
+              <button
+                type="button"
+                onClick={() => setMovementBasis('today')}
+                className={`py-2 px-1 text-center rounded-xl font-bold text-[11px] transition-all ${
+                  movementBasis === 'today'
+                    ? 'bg-white text-brand-charcoal shadow-2xs'
+                    : 'text-brand-slate hover:text-brand-charcoal'
+                }`}
+              >
+                🔥 Today's Burn
+              </button>
+              <button
+                type="button"
+                onClick={() => setMovementBasis('estimate')}
+                className={`py-2 px-1 text-center rounded-xl font-bold text-[11px] transition-all ${
+                  movementBasis === 'estimate'
+                    ? 'bg-white text-brand-charcoal shadow-2xs'
+                    : 'text-brand-slate hover:text-brand-charcoal'
+                }`}
+              >
+                ⚙️ Estimate
+              </button>
+            </div>
+
+            {movementBasis === '7day' && (
+              <p className="text-[10px] font-semibold text-brand-green mt-1.5 px-1 flex items-center gap-1">
+                <span>✓ Based on 7-day Apple Health average:</span>
+                <span className="font-bold">+{healthData.avgActiveBurn} kcal/day active burn</span>
+              </p>
+            )}
+
+            {movementBasis === 'today' && (
+              <p className="text-[10px] font-semibold text-brand-blue mt-1.5 px-1 flex items-center gap-1">
+                <span>✓ Based on today's Apple Health active burn:</span>
+                <span className="font-bold">+{healthData.todayActive} kcal active burn</span>
+              </p>
+            )}
+
+            {movementBasis === 'estimate' && (
+              <div className="mt-2">
+                <select
+                  value={activityLevel}
+                  onChange={(e) => setActivityLevel(parseFloat(e.target.value))}
+                  className="w-full px-4 py-2.5 bg-neutral-50 rounded-2xl border border-neutral-200 text-brand-charcoal font-bold focus:outline-none focus:border-brand-rose focus:bg-white transition-all text-xs appearance-none cursor-pointer"
+                >
+                  <option value="1.2">Sedentary (Little to no exercise)</option>
+                  <option value="1.375">Lightly Active (1-3 days/wk light workouts)</option>
+                  <option value="1.55">Moderately Active (3-5 days/wk moderate exercises)</option>
+                  <option value="1.725">Very Active (6-7 days/wk hard workouts)</option>
+                </select>
+              </div>
+            )}
           </div>
 
           {/* Calorie recommendation display */}

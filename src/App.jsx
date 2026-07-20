@@ -178,89 +178,85 @@ export default function App() {
     };
     const thirtyDaysAgoStr = getThirtyDaysAgoDateString();
 
-    // 4. User Meals Listener (last 30 days)
+    // 4. Meals Listener (last 30 days) - Single field query (No composite index required)
     const mealsRef = collection(db, 'couples', passcode, 'meals');
-    const userMealsQuery = query(mealsRef, where('profileId', '==', profileId), where('date', '>=', thirtyDaysAgoStr));
-    const unsubMeals = onSnapshot(userMealsQuery, (snapshot) => {
-      const list = [];
-      snapshot.forEach(d => list.push({ id: d.id, ...d.data() }));
-      setUserMeals(list);
-    });
+    const mealsQuery = query(mealsRef, where('date', '>=', thirtyDaysAgoStr));
+    const unsubMeals = onSnapshot(mealsQuery, (snapshot) => {
+      const uList = [];
+      const pList = [];
+      snapshot.forEach(d => {
+        const item = { id: d.id, ...d.data() };
+        if (item.profileId === profileId) {
+          uList.push(item);
+        } else if (item.profileId === partnerProfileId) {
+          pList.push(item);
+        }
+      });
+      setUserMeals(uList);
+      setPartnerMeals(pList);
+    }, (err) => console.error("Error fetching meals:", err));
 
-    // 5. Partner Meals Listener (last 30 days)
-    const partnerMealsQuery = query(mealsRef, where('profileId', '==', partnerProfileId), where('date', '>=', thirtyDaysAgoStr));
-    const unsubPartnerMeals = onSnapshot(partnerMealsQuery, (snapshot) => {
-      const list = [];
-      snapshot.forEach(d => list.push({ id: d.id, ...d.data() }));
-      setPartnerMeals(list);
-    });
-
-    // 6. User Activities Listener (last 30 days)
+    // 5. Activities Listener (last 30 days) - Single field query (No composite index required)
     const actsRef = collection(db, 'couples', passcode, 'activities');
-    const userActsQuery = query(actsRef, where('profileId', '==', profileId), where('date', '>=', thirtyDaysAgoStr));
-    const unsubActs = onSnapshot(userActsQuery, (snapshot) => {
-      const list = [];
-      snapshot.forEach(d => list.push({ id: d.id, ...d.data() }));
-      setUserActivities(list);
-    });
+    const actsQuery = query(actsRef, where('date', '>=', thirtyDaysAgoStr));
+    const unsubActs = onSnapshot(actsQuery, (snapshot) => {
+      const uList = [];
+      const pList = [];
+      snapshot.forEach(d => {
+        const item = { id: d.id, ...d.data() };
+        if (item.profileId === profileId) {
+          uList.push(item);
+        } else if (item.profileId === partnerProfileId) {
+          pList.push(item);
+        }
+      });
+      setUserActivities(uList);
+      setPartnerActivities(pList);
+    }, (err) => console.error("Error fetching activities:", err));
 
-    // 7. Partner Activities Listener (last 30 days)
-    const partnerActsQuery = query(actsRef, where('profileId', '==', partnerProfileId), where('date', '>=', thirtyDaysAgoStr));
-    const unsubPartnerActs = onSnapshot(partnerActsQuery, (snapshot) => {
-      const list = [];
-      snapshot.forEach(d => list.push({ id: d.id, ...d.data() }));
-      setPartnerActivities(list);
-    });
-
-    // 8. User Summaries Listener
+    // 6. Daily Summaries Listener
     const sumsRef = collection(db, 'couples', passcode, 'dailySummaries');
-    const userSumsQuery = query(sumsRef, where('profileId', '==', profileId));
-    const unsubSums = onSnapshot(userSumsQuery, (snapshot) => {
-      const map = {};
+    const unsubSums = onSnapshot(sumsRef, (snapshot) => {
+      const uMap = {};
+      const pMap = {};
       snapshot.forEach(d => {
-        map[d.data().date] = d.data();
+        const data = d.data();
+        const pid = data.profileId || d.id.split('_')[0];
+        const dateKey = data.date || d.id.split('_')[1];
+        if (pid === profileId) {
+          uMap[dateKey] = data;
+        } else if (pid === partnerProfileId) {
+          pMap[dateKey] = data;
+        }
       });
-      setUserSummaries(map);
-    });
+      setUserSummaries(uMap);
+      setPartnerSummaries(pMap);
+    }, (err) => console.error("Error fetching summaries:", err));
 
-    // 9. Partner Summaries Listener
-    const partnerSumsQuery = query(sumsRef, where('profileId', '==', partnerProfileId));
-    const unsubPartnerSums = onSnapshot(partnerSumsQuery, (snapshot) => {
-      const map = {};
-      snapshot.forEach(d => {
-        map[d.data().date] = d.data();
-      });
-      setPartnerSummaries(map);
-    });
-
-    // 10. User Weights Listener
+    // 7. Weights Listener
     const weightsRef = collection(db, 'couples', passcode, 'weights');
-    const userWeightsQuery = query(weightsRef, where('profileId', '==', profileId));
-    const unsubWeights = onSnapshot(userWeightsQuery, (snapshot) => {
-      const list = [];
-      snapshot.forEach(d => list.push({ id: d.id, ...d.data() }));
-      setUserWeights(list);
-    });
-
-    // 11. Partner Weights Listener
-    const partnerWeightsQuery = query(weightsRef, where('profileId', '==', partnerProfileId));
-    const unsubPartnerWeights = onSnapshot(partnerWeightsQuery, (snapshot) => {
-      const list = [];
-      snapshot.forEach(d => list.push({ id: d.id, ...d.data() }));
-      setPartnerWeights(list);
-    });
+    const unsubWeights = onSnapshot(weightsRef, (snapshot) => {
+      const uList = [];
+      const pList = [];
+      snapshot.forEach(d => {
+        const item = { id: d.id, ...d.data() };
+        if (item.profileId === profileId) {
+          uList.push(item);
+        } else if (item.profileId === partnerProfileId) {
+          pList.push(item);
+        }
+      });
+      setUserWeights(uList);
+      setPartnerWeights(pList);
+    }, (err) => console.error("Error fetching weights:", err));
 
     return () => {
       unsubProfile();
       unsubPartnerProfile();
       unsubMeals();
-      unsubPartnerMeals();
       unsubActs();
-      unsubPartnerActs();
       unsubSums();
-      unsubPartnerSums();
       unsubWeights();
-      unsubPartnerWeights();
     };
   }, [passcode, profileId, partnerProfileId]);
 
@@ -527,6 +523,7 @@ export default function App() {
               isNativeDevice={isNativeDevice}
               healthAuthorized={healthAuthorized}
               onRequestHealthAuth={handleRequestHealthAuth}
+              userSummaries={userSummaries}
             />
           )}
         </main>
